@@ -10,4 +10,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.get("/")
+async def root():
+    return {"message": "Am Up and Running"}
+
 app.include_router(events_router)
