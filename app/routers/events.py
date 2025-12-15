@@ -24,7 +24,7 @@ async def today_events(
     for e in events:
         event_id = e["idEvent"]
         
-        timeline = await get_event_timeline(event_id)
+        #timeline = await get_event_timeline(event_id)
 
         status = normalize_status(e.get("strStatus"))
 
@@ -39,10 +39,15 @@ async def today_events(
             e.get("dateEvent"),
             e.get("strTime")
         )
+        
         response.append({
             "id": e["idEvent"],
             "home_team": e["strHomeTeam"],
             "away_team": e["strAwayTeam"],
+            "league": {
+                "id": e.get("idLeague"),
+                "name": e.get("strLeague"),
+            },
             "home_badge": home_badge,
             "away_badge": away_badge,
             "home_score": int(e["intHomeScore"] or 0),
@@ -52,7 +57,7 @@ async def today_events(
             "kickoff_time_utc": kickoff.isoformat() if kickoff else None,
             "minutes_to_kickoff": minutes_to_kickoff(kickoff, status),
 
-            "timeline": timeline
+            #"timeline": timeline
         })
 
     return response
