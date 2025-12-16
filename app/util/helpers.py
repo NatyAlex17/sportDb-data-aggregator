@@ -1,5 +1,7 @@
+from typing import Optional
 from app.models.schemas import MatchStatus
 from app.services.sportsdb import get_team_by_id
+from datetime import datetime, timezone
 from datetime import datetime, timezone
 
 
@@ -7,47 +9,67 @@ def normalize_status(raw_status: str | None) -> MatchStatus:
     if not raw_status:
         return MatchStatus.NS
 
-    s = raw_status.lower()
+    
+    STATUS_MAP = {
+        "TBD": MatchStatus.TBD,
+        "NS": MatchStatus.NS,
+        "1H": MatchStatus.FIRST_HALF,
+        "HT": MatchStatus.HT,
+        "2H": MatchStatus.SECOND_HALF,
+        "ET": MatchStatus.ET,
+        "P": MatchStatus.PENALTY_IN_PROGRESS,
+        "FT": MatchStatus.FT,
+        "AET": MatchStatus.AET,
+        "PEN": MatchStatus.PEN,
+        "BT": MatchStatus.BT,
+        "SUSP": MatchStatus.SUSPENDED,
+        "INT": MatchStatus.INTERRUPTED,
+        "PST": MatchStatus.POSTPONED,
+        "CANC": MatchStatus.CANCELLED,
+        "ABD": MatchStatus.ABANDONED,
+        "AWD": MatchStatus.AWARDED,
+        "WO": MatchStatus.WALKOVER,
+        "Match Finished": MatchStatus.FT
+    }
 
-    if "live" in s:
-        return MatchStatus.LIVE
-    if "half" in s:
-        return MatchStatus.HT
-    if "finished" in s:
-        return MatchStatus.FT
-    if "postponed" in s:
-        return MatchStatus.POSTPONED
-
-    return MatchStatus.NS
-
-from datetime import datetime, timezone
+    return STATUS_MAP.get(raw_status, MatchStatus.NS)
 
 def compute_match_minute(
     date_event: str | None,
     time_event: str | None,
     status: MatchStatus
-) -> int | None:
-    if status not in {MatchStatus.LIVE, MatchStatus.HT}:
+) -> Optional[int]:
+    # Only compute minute when the clock is running
+    LIVE_STATUSES = {
+        MatchStatus.FIRST_HALF,   # 1H
+        MatchStatus.SECOND_HALF,  # 2H
+        MatchStatus.ET,           # Extra Time
+        MatchStatus.PENALTY_IN_PROGRESS,  # P
+    }
+
+    if status not in LIVE_STATUSES:
         return None
 
     if not date_event or not time_event:
         return None
 
-    kickoff = datetime.fromisoformat(
-        f"{date_event}T{time_event}"
-    ).replace(tzinfo=timezone.utc)
+    try:
+        kickoff = datetime.fromisoformat(
+            f"{date_event}T{time_event}"
+        ).replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
 
     now = datetime.now(timezone.utc)
     minutes = int((now - kickoff).total_seconds() // 60)
 
-    # Clamp values
+    # Clamp to realistic football bounds
     if minutes < 0:
         return 0
-    if minutes > 120:
-        return 120
+    if minutes > 130:  # 120 + stoppage safety
+        return 130
 
     return minutes
-
 async def resolve_team_badge(event: dict, side: str):
     badge_key = f"str{side}TeamBadge"
     team_id_key = f"id{side}Team"

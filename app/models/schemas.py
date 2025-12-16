@@ -2,13 +2,24 @@ from pydantic import BaseModel
 from enum import Enum
 
 class MatchStatus(str, Enum):
-    NS = "NS"      
-    LIVE = "LIVE"
+    TBD = "TBD"
+    NS = "NS"
+    FIRST_HALF = "1H"
     HT = "HT"
+    SECOND_HALF = "2H"
+    ET = "ET"
+    PENALTY_IN_PROGRESS = "P"
     FT = "FT"
     AET = "AET"
     PEN = "PEN"
-    POSTPONED = "POSTPONED"
+    BT = "BT"
+    SUSPENDED = "SUSP"
+    INTERRUPTED = "INT"
+    POSTPONED = "PST"
+    CANCELLED = "CANC"
+    ABANDONED = "ABD"
+    AWARDED = "AWD"
+    WALKOVER = "WO"
 
 
 class TimelineItem(BaseModel):

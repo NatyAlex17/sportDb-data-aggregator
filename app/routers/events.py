@@ -69,13 +69,35 @@ async def event_by_id(event_id: str):
         raise HTTPException(status_code=404, detail="Event not found")
 
     timeline = await get_event_timeline(event_id)
-
+    
+    status = normalize_status(event.get("strStatus"))
+    minute = compute_match_minute(
+        event.get("dateEvent"),
+        event.get("strTime"),
+        status
+    )
+    home_badge = await resolve_team_badge(event, "Home")
+    away_badge = await resolve_team_badge(event, "Away")
+    kickoff = get_kickoff_datetime(
+        event.get("dateEvent"),
+        event.get("strTime")
+    )
     return {
-        "id": event_id,
+        "id": event["idEvent"],
         "home_team": event["strHomeTeam"],
         "away_team": event["strAwayTeam"],
-        "league": event["strLeague"],
-        "date": event["dateEvent"],
-        "time": event["strTime"],
+        "league": {
+            "id": event.get("idLeague"),
+            "name": event.get("strLeague"),
+        },
+        "home_badge": home_badge,
+        "away_badge": away_badge,
+        "home_score": int(event["intHomeScore"] or 0),
+        "away_score": int(event["intAwayScore"] or 0),
+        "status": status,
+        "minute": minute,
+        "kickoff_time_utc": kickoff.isoformat() if kickoff else None,
+        "minutes_to_kickoff": minutes_to_kickoff(kickoff, status),
+
         "timeline": timeline
     }
